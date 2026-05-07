@@ -1,15 +1,21 @@
 <?php
-include 'config.php';
 session_start();
+include 'config.php';
 
-// SECURITY: CSRF protection using token
+// SECURITY: CSRF protection
 if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $_SESSION['csrf_token'] = function_exists('random_bytes') ? bin2hex(random_bytes(32)) : md5(uniqid(mt_rand(), true));
+}
+
+// Redirect jika sudah login
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // SECURITY: Verify CSRF token
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         die('CSRF token mismatch');
     }
 
@@ -25,64 +31,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (strlen($password) < 8) {
         $error = 'Password must be at least 8 characters';
     } else {
-        // SECURITY: Strong password hashing
+        // SECURITY: Strong password hashing (Bcrypt)
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        // SECURITY: Prepared statement prevents SQL injection
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+        // SECURITY: PDO Prepared statement
+        $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'student')");
         try {
             $stmt->execute([$name, $email, $hashed_password]);
-            $success = 'Registration successful. <a href="login.php">Login</a>';
-            // SECURITY: Regenerate session ID after successful action
-            session_regenerate_id(true);
+            $success = 'Registration successful! You can now <a href="login.php" style="text-decoration: underline;">Login here</a>.';
         } catch (PDOException $e) {
             if ($e->getCode() == 23000) {
-                $error = 'Email already exists';
+                $error = 'Email already exists.';
             } else {
-                // SECURITY: Generic error message, no details exposed
-                $error = 'Registration failed. Please try again.';
+                $error = 'Registration failed. Please try again.'; // SECURITY: Generic error
             }
         }
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Secure</title>
+    <title>Register | Secure Lab</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="js/script.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <div class="navbar">
-        <h1>Student Registration</h1>
-        <a href="login.php">Login</a>
-    </div>
-    <div class="container">
-        <div class="card">
-            <h2>Register</h2>
-            <?php if (isset($error)) echo "<div class='alert alert-error'>" . htmlspecialchars($error) . "</div>"; ?>
-            <?php if (isset($success)) echo "<div class='alert alert-success'>" . $success . "</div>"; ?>
-            <form method="post" id="registerForm">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+<body class="theme-secure">
+    <div class="top-banner"><i class="fa-solid fa-shield-check"></i> SECURE ENVIRONMENT (PATCHED)</div>
+    <div class="auth-container">
+        <div class="auth-box glass-panel">
+            <div class="auth-header">
+                <div class="logo" style="justify-content: center;"><i class="fa-solid fa-shield-halved"></i> DeceptionGrid</div>
+                <h2 style="color: var(--primary);">Secure Registration</h2>
+                <p class="form-label">Create an account safely.</p>
+            </div>
+            
+            <?php if(isset($error)) echo "<div class='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; ?>
+            <?php if(isset($success)) echo "<div class='alert' style='background: rgba(16, 185, 129, 0.1); color: #10B981; border-color: #10B981;'>" . $success . "</div>"; ?>
+            
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+                
                 <div class="form-group">
-                    <label for="name">Name:</label>
-                    <input type="text" id="name" name="name" required>
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" required pattern="[a-zA-Z\s]+">
                 </div>
                 <div class="form-group">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
+                    <label class="form-label">Email Address</label>
+                    <input type="email" name="email" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
+                    <label class="form-label">Password (Min 8 characters)</label>
+                    <input type="password" name="password" class="form-control" required minlength="8">
+                    <i class="fa-solid fa-eye password-toggle"></i>
                 </div>
-                <button type="submit" class="btn">Register</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Create Secure Account</button>
             </form>
+            <p style="text-align: center; margin-top: 20px; font-size: 0.9rem;">Already have an account? <a href="login.php">Login here</a></p>
         </div>
     </div>
+    <script src="js/script.js"></script>
 </body>
 </html>

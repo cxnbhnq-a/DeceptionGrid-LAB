@@ -1,60 +1,61 @@
 <?php
-include 'config.php';
-session_start(); // VULNERABILITY: Session fixation - session ID not regenerated
+require_once 'config.php';
 
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit();
+}
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
-    $password = md5($_POST['password']); // VULNERABILITY: Weak hashing
+    $password = md5($_POST['password']); // VULN: Weak Hash
 
-    // VULNERABILITY: SQL Injection - direct concatenation
-    // Example attack: email='admin@example.com' -- ', password=anything
+    // VULN: SQL Injection (Login Bypass: ' OR '1'='1)
     $query = "SELECT * FROM users WHERE email='$email' AND password='$password'";
     $result = mysqli_query($conn, $query);
 
-    if (mysqli_num_rows($result) == 1) {
+    if (mysqli_num_rows($result) > 0) {
         $user = mysqli_fetch_assoc($result);
         $_SESSION['user_id'] = $user['id'];
-        $_SESSION['name'] = $user['name']; // VULNERABILITY: XSS if name contains script
+        $_SESSION['name'] = $user['name']; // VULN: Stored Session XSS
         $_SESSION['role'] = $user['role'];
-        // VULNERABILITY: No session regeneration
-        header("Location: dashboard.php");
-        exit();
+        header("Location: dashboard.php"); exit();
     } else {
-        $error = "Invalid credentials";
+        $error = "Login failed. Invalid syntax in query: " . $query; // VULN: Information Disclosure
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Vulnerable</title>
+    <title>Login | Vulnerable Lab</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="js/script.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <div class="navbar">
-        <h1>Student Registration</h1>
-        <a href="register.php">Register</a>
-    </div>
-    <div class="container">
-        <div class="card">
-            <h2>Login</h2>
-            <?php if (isset($error)) echo "<div class='alert alert-error'>" . $error . "</div>"; // VULNERABILITY: XSS if error contains script ?>
-            <form method="post" id="loginForm">
+<body class="theme-vuln">
+    <div class="top-banner"><i class="fa-solid fa-triangle-exclamation"></i> INTENTIONALLY VULNERABLE ENVIRONMENT</div>
+    <div class="auth-container">
+        <div class="auth-box glass-panel">
+            <div class="auth-header">
+                <div class="logo" style="justify-content: center;"><i class="fa-solid fa-bug"></i> DeceptionGrid</div>
+                <h2 style="color: var(--primary);">System Login</h2>
+                <p class="form-label">Enter your credentials to access the lab.</p>
+            </div>
+            <?php if(isset($error)) echo "<div class='alert'>$error</div>"; // VULN: Reflected XSS ?>
+            <form method="post">
                 <div class="form-group">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
+                    <label class="form-label">Email Address</label>
+                    <input type="text" name="email" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                    <i class="fa-solid fa-eye password-toggle"></i>
                 </div>
-                <button type="submit" class="btn">Login</button>
+                <button type="submit" class="btn btn-primary">Login to Lab</button>
             </form>
+            <p style="text-align: center; margin-top: 20px; font-size: 0.9rem;">No account? <a href="register.php">Register here</a></p>
         </div>
     </div>
+    <script src="js/script.js"></script>
 </body>
 </html>

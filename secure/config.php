@@ -1,11 +1,12 @@
 <?php
 // SECURE CONFIG - Using PDO with error handling
 // Security: PDO prevents SQL injection, error handling doesn't expose details
-
+session_name('SEC_LAB_SESSION');
+session_start();
 $host = 'localhost';
 $dbname = 'student_registration';
-$user = 'root';
-$pass = '';
+$user = 'sispen';
+$pass = '0102';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $user, $pass);

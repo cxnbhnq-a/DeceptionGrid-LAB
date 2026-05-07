@@ -1,62 +1,74 @@
 <?php
-include 'config.php';
-session_start();
+// Error tracker
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-// VULNERABILITY: No CSRF protection
-// VULNERABILITY: No input validation/sanitization
+session_start();
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit();
+}
+
+include 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name']; // VULNERABILITY: No sanitization - XSS possible
+    // VULNERABILITY: No sanitization, allows XSS payloads
+    $name = $_POST['name']; 
     $email = $_POST['email'];
-    $password = md5($_POST['password']); // VULNERABILITY: Weak password hashing (MD5 is broken)
+    // VULNERABILITY: Weak hashing
+    $password = md5($_POST['password']); 
 
-    // VULNERABILITY: SQL Injection - direct string concatenation
-    // Example attack: name='test', email='test@test.com' OR '1'='1 -- ', password=anything
-    $query = "INSERT INTO users (name, email, password) VALUES ('$name', '$email', '$password')";
+    // VULNERABILITY: SQL Injection 
+    $query = "INSERT INTO users (name, email, password, role) VALUES ('$name', '$email', '$password', 'student')";
 
     if (mysqli_query($conn, $query)) {
-        // VULNERABILITY: XSS - echoing user input without escaping
-        echo "<div class='alert alert-success'>Registration successful for $name. <a href='login.php'>Login</a></div>";
+        // VULNERABILITY: Reflected XSS (Name is echoed directly without escaping)
+        $success = "Registration successful for user: $name! You can now <a href='login.php' style='text-decoration: underline;'>Login here</a>.";
     } else {
-        // VULNERABILITY: Information disclosure - exposing database errors
-        echo "<div class='alert alert-error'>Error: " . mysqli_error($conn) . "</div>";
+        // VULNERABILITY: Information Disclosure
+        $error = "Database Error: " . mysqli_error($conn);
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Vulnerable</title>
+    <title>Register | Vulnerable Lab</title>
     <link rel="stylesheet" href="css/style.css">
-    <script src="js/script.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <div class="navbar">
-        <h1>Student Registration</h1>
-        <a href="login.php">Login</a>
-    </div>
-    <div class="container">
-        <div class="card">
-            <h2>Register</h2>
-            <form method="post" id="registerForm">
+<body class="theme-vuln">
+    <div class="top-banner"><i class="fa-solid fa-triangle-exclamation"></i> INTENTIONALLY VULNERABLE ENVIRONMENT</div>
+    <div class="auth-container">
+        <div class="auth-box glass-panel">
+            <div class="auth-header">
+                <div class="logo" style="justify-content: center;"><i class="fa-solid fa-bug"></i> DeceptionGrid</div>
+                <h2 style="color: var(--primary);">System Registration</h2>
+                <p class="form-label">Warning: Input filters are disabled.</p>
+            </div>
+            
+            <?php if(isset($error)) echo "<div class='alert'>$error</div>"; ?>
+            <?php if(isset($success)) echo "<div class='alert' style='background: rgba(16, 185, 129, 0.1); color: #10B981; border-color: #10B981;'>$success</div>"; ?>
+            
+            <form method="post">
                 <div class="form-group">
-                    <label for="name">Name:</label>
-                    <input type="text" id="name" name="name" required>
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
+                    <label class="form-label">Email Address</label>
+                    <input type="text" name="email" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                    <i class="fa-solid fa-eye password-toggle"></i>
                 </div>
-                <button type="submit" class="btn">Register</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Register Account</button>
             </form>
+            <p style="text-align: center; margin-top: 20px; font-size: 0.9rem;">Already have an account? <a href="login.php">Login here</a></p>
         </div>
     </div>
+    <script src="js/script.js"></script>
 </body>
 </html>

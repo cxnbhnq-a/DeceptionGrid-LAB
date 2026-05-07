@@ -1,11 +1,25 @@
 <?php
-session_start();
+// Error tracker
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// PANGGIL CONFIG PALING AWAL AGAR SESSION TERBACA
+// Catatan: session_start() sudah otomatis dijalankan di dalam config.php
+require_once 'config.php';
+
+// MENCEGAH CACHE BROWSER (Posisi yang benar: di luar blok if)
+// Ini memastikan setelah logout, user tidak bisa menekan tombol Back untuk melihat dashboard
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+// Cek apakah user sudah login
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// SECURITY: Session timeout check
+// SECURITY: Session timeout check (30 menit)
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
     session_unset();
     session_destroy();
@@ -14,46 +28,62 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 }
 $_SESSION['last_activity'] = time();
 
-include 'config.php';
+if (!isset($pdo)) {
+    die("Koneksi database (\$pdo) tidak ditemukan di config.php!");
+}
+
 $user_id = $_SESSION['user_id'];
 
-// SECURITY: Prepared statement
-$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+// SECURITY: PDO Prepared statement
+$stmt = $pdo->prepare("SELECT name, email, role FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
-$user = $stmt->fetch();
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
-    exit();
+    die("User tidak ditemukan di database.");
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Secure</title>
+    <title>Dashboard | Secure Lab</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-    <div class="navbar">
-        <h1>Dashboard</h1>
-        <a href="logout.php">Logout</a>
-    </div>
-    <div class="container">
-        <div class="card">
-            <h2>Welcome, <?php echo htmlspecialchars($_SESSION['name']); // SECURITY: XSS prevention ?></h2>
-            <p>Email: <?php echo htmlspecialchars($user['email']); ?></p>
-            <p>Role: <?php echo htmlspecialchars($user['role']); ?></p>
-            <?php if ($user['profile_pic']) echo "<img src='uploads/" . htmlspecialchars($user['profile_pic']) . "' class='profile-pic'>"; // SECURITY: Sanitize filename ?>
-            <br><br>
-            <a href="upload.php" class="btn">Upload Profile Pic</a>
-            <a href="edit_profile.php" class="btn">Edit Profile</a>
-            <?php if ($user['role'] == 'admin') echo "<a href='admin.php' class='btn'>Admin Panel</a>"; ?>
-        </div>
+<body class="theme-secure">
+    <div class="top-banner"><i class="fa-solid fa-shield-check"></i> SECURE ENVIRONMENT (PATCHED)</div>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo"><a href="../index.php"><i class="fa-solid fa-shield-halved"></i></a> SecOps Menu</div>
+            <ul class="menu-list">
+                <li><a href="dashboard.php" class="active"><i class="fa-solid fa-terminal"></i> Dashboard</a></li>
+                <li><a href="edit_profile.php"><i class="fa-solid fa-user-shield"></i> Profile</a></li>
+                <li><a href="upload.php"><i class="fa-solid fa-file-shield"></i> Secure Upload</a></li>
+                <?php if ($user['role'] == 'admin') echo "<li><a href='admin.php'><i class='fa-solid fa-lock'></i> Admin Panel</a></li>"; ?>
+                <li><a href="logout.php"><i class="fa-solid fa-power-off"></i> Disconnect</a></li>
+            </ul>
+        </aside>
+        <main class="main-content">
+            <h2 style="font-family: var(--font-mono); margin-top: 40px;">Welcome, <?php echo htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8'); ?>_</h2>
+
+            <div class="grid-cards">
+                <div class="stat-card glass-panel">
+                    <p class="form-label">System Role</p>
+                    <h3><?php echo htmlspecialchars(strtoupper($user['role']), ENT_QUOTES, 'UTF-8'); ?></h3>
+                </div>
+                <div class="stat-card glass-panel">
+                    <p class="form-label">Registered Email</p>
+                    <h3 style="word-break: break-all;"><?php echo htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8'); ?></h3>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="padding: 20px;">
+                <h3>System Status</h3>
+                <p class="form-label" style="margin-top: 10px;">Security measures are active. Input validation, Output Encoding, and Prepared Statements are strictly enforced.</p>
+            </div>
+        </main>
     </div>
 </body>
 </html>
