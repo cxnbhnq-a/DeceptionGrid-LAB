@@ -1,14 +1,13 @@
 <?php
-// Error tracker
+// MENGAKTIFKAN PENDETEKSI ERROR 
+// (Catatan SecOps: Di dunia nyata/production, ubah angka 1 menjadi 0 agar error tidak bocor ke publik)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 // PANGGIL CONFIG PALING AWAL AGAR SESSION TERBACA
-// Catatan: session_start() sudah otomatis dijalankan di dalam config.php
 require_once 'config.php';
 
-// MENCEGAH CACHE BROWSER (Posisi yang benar: di luar blok if)
-// Ini memastikan setelah logout, user tidak bisa menekan tombol Back untuk melihat dashboard
+// MENCEGAH CACHE BROWSER
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
@@ -19,11 +18,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// SECURITY: Session timeout check (30 menit)
+// SECURITY: Session timeout check (30 menit / 1800 detik)
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    header("Location: login.php?msg=timeout"); // Tambahkan parameter msg agar bisa ditangkap di login.php
     exit();
 }
 $_SESSION['last_activity'] = time();
@@ -38,6 +37,7 @@ $user_id = $_SESSION['user_id'];
 $stmt = $pdo->prepare("SELECT name, email, role FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
+$search = $_GET['search'] ?? '';
 
 if (!$user) {
     session_unset();
@@ -61,11 +61,85 @@ if (!$user) {
                 <li><a href="dashboard.php" class="active"><i class="fa-solid fa-terminal"></i> Dashboard</a></li>
                 <li><a href="edit_profile.php"><i class="fa-solid fa-user-shield"></i> Profile</a></li>
                 <li><a href="upload.php"><i class="fa-solid fa-file-shield"></i> Secure Upload</a></li>
-                <?php if ($user['role'] == 'admin') echo "<li><a href='admin.php'><i class='fa-solid fa-lock'></i> Admin Panel</a></li>"; ?>
+                
+                <?php if (strtolower($user['role']) === 'admin') echo "<li><a href='admin.php'><i class='fa-solid fa-lock'></i> Admin Panel</a></li>"; ?>
+                
                 <li><a href="logout.php"><i class="fa-solid fa-power-off"></i> Disconnect</a></li>
             </ul>
         </aside>
         <main class="main-content">
+<div
+    class="glass-panel"
+    style="
+        padding:20px;
+        margin-top:40px;
+        margin-bottom:20px;
+    "
+>
+
+    <h3 style="margin-bottom:15px;">
+        Quick Search
+    </h3>
+
+    <form method="GET">
+
+        <div
+            style="
+                display:flex;
+                gap:10px;
+                align-items:center;
+            "
+        >
+
+            <input
+                type="text"
+                name="search"
+                class="form-control"
+                placeholder="Search page..."
+                value="<?php
+echo htmlspecialchars(
+    $search,
+    ENT_QUOTES,
+    'UTF-8'
+); ?>"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+                style="width:auto;"
+            >
+                Search
+            </button>
+
+        </div>
+
+    </form>
+
+    <?php if (!empty($search)): ?>
+
+    <div
+        style="
+            margin-top:20px;
+            padding:15px;
+            border:1px solid rgba(255,0,0,.2);
+            border-radius:10px;
+        "
+    >
+
+        Search result for:
+<?php
+echo htmlspecialchars(
+    $search,
+    ENT_QUOTES,
+    'UTF-8'
+);
+?>
+    </div>
+
+    <?php endif; ?>
+
+</div>
             <h2 style="font-family: var(--font-mono); margin-top: 40px;">Welcome, <?php echo htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8'); ?>_</h2>
 
             <div class="grid-cards">

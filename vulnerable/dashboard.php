@@ -23,6 +23,7 @@ $user_id = $_SESSION['user_id'];
 $query = "SELECT * FROM users WHERE id=$user_id";
 $result = mysqli_query($conn, $query);
 $user = mysqli_fetch_assoc($result);
+$search = $_GET['search'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,7 +46,69 @@ $user = mysqli_fetch_assoc($result);
             </ul>
         </aside>
         <main class="main-content">
-            <h2 style="font-family: var(--font-mono); margin-top: 40px;">Welcome, <?php echo $user['name']; // VULN: Stored XSS ?>_</h2>
+         <div
+    class="glass-panel"
+    style="
+        padding:20px;
+        margin-top:40px;
+        margin-bottom:20px;
+    "
+>
+
+    <h3 style="margin-bottom:15px;">
+        Quick Search
+    </h3>
+
+    <form method="GET">
+
+        <div
+            style="
+                display:flex;
+                gap:10px;
+                align-items:center;
+            "
+        >
+
+            <input
+                type="text"
+                name="search"
+                class="form-control"
+                placeholder="Search page..."
+                value="<?php echo $search; ?>"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+                style="width:auto;"
+            >
+                Search
+            </button>
+
+        </div>
+
+    </form>
+
+    <?php if (!empty($search)): ?>
+
+    <div
+        style="
+            margin-top:20px;
+            padding:15px;
+            border:1px solid rgba(255,0,0,.2);
+            border-radius:10px;
+        "
+    >
+
+        Search result for:
+        <?php echo $search; ?>
+
+    </div>
+
+    <?php endif; ?>
+
+</div>
+    <h2 style="font-family: var(--font-mono); margin-top: 40px;">Welcome, <?php echo $user['name']; // VULN: Stored XSS ?>_</h2>
 
             <div class="grid-cards">
                 <div class="stat-card glass-panel">

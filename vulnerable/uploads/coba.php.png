@@ -1,5 +1,0 @@
-<?php
-// Mengalihkan bot dari ngrok lu menuju localhost-nya si bot!
-header("Location: http://localhost/search?q=PWNED");
-exit;
-?>

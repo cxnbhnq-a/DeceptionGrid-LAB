@@ -1,15 +1,11 @@
 <?php
-// Error tracker
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+require_once 'config.php';
 
-session_start();
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
 }
 
-include 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // VULNERABILITY: No sanitization, allows XSS payloads

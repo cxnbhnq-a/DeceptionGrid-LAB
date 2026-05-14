@@ -1,7 +1,7 @@
 <?php
-session_start();
+require_once 'config.php';
+
 if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
-include 'config.php';
 $user_id = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
