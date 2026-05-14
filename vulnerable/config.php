@@ -5,9 +5,9 @@ session_name('VULN_LAB_SESSION');
 session_start();
 
 $host = 'localhost';
-$user = 'sispen';
-$pass = '0102';
-$db = 'student_registration';
+$user = '(nama user)';
+$pass = '(password)';
+$db = '(nama database)';
 
 $conn = mysqli_connect($host, $user, $pass, $db);
 
