@@ -139,9 +139,9 @@ header(
 */
 
 $host = 'localhost';
-$dbname = 'student_registration';
-$user = 'sispen';
-$pass = '0102';
+$dbname = 'nama database';
+$user = 'nama user db';
+$pass = 'password untuk login';
 
 $dsn =
     "mysql:host=$host;
