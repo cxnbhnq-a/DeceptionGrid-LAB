@@ -1,0 +1,37 @@
+-- Web Security Learning Lab database schema
+-- Created for MySQL / MariaDB
+
+CREATE DATABASE IF NOT EXISTS web_security_lab CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE web_security_lab;
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(80) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    fullname VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE,
+    role ENUM('user','admin') NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS uploads (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(120) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+INSERT INTO users (username, password, fullname, email, role) VALUES
+('admin', '$2y$10$XnO7yhXKQOeIwMCG0kC0MO8Mub3OGdtXk7wnJLh2aEo3w1xZKz6Ai', 'Secure Admin', 'admin@secure-lab.test', 'admin'),
+('user1', '$2y$10$qMTZzvA27E9rXhv4ZkKqH..x6CE3L0qZ/kN02t3QeY7aKcQJ3dMaq', 'Regular User', 'user1@secure-lab.test', 'user'),
+('vulnuser', '5f4dcc3b5aa765d61d8327deb882cf99', 'Vulnerable User', 'vuln@lab.test', 'user'),
+('vulnadmin', '21232f297a57a5a743894a0e4a801fc3', 'Vulnerable Admin', 'admin@lab.test', 'admin');
+
+-- Passwords: admin123 (secure), demo2026 (secure), password (vulnerable), admin (vulnerable)
+
+INSERT INTO uploads (user_id, filename, original_name, mime_type) VALUES
+(1, 'secure-file-1.pdf', 'guide.pdf', 'application/pdf'),
+(2, 'secure-image-2.png', 'screenshot.png', 'image/png');
